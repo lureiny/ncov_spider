@@ -44,4 +44,9 @@ class GDWJWItem(Item):
             "body": [],
             "effective": False
         }
-        
+    
+    # 存储对象信息处理
+    def deal(self):
+        mongo = MongoDB(MONGODB_URI, "notices")
+        del self._info["effective"]
+        mongo.insert(self._info)
