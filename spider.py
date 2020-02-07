@@ -13,6 +13,10 @@ def generate_hash(info):
 
 
 class Spider():
+    def __init__(self):
+        super().__init__()
+        self._start_url = ""
+
     # 去重判断，如果url已经遍历返回True，否则返回False
     def url_repeat(self, url):
         r_c = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
@@ -35,11 +39,14 @@ class Spider():
 
 # 广东卫健卫爬虫，示例
 class  GDWJWSpider(Spider):
-    # # 重载方法
-    # def deal_item(self, item):
-    #     if item.get_info("effective"):
-    #         self.update_filter_queue(item.get_info("sourceUrl"))    
-    #         item.deal()
+    def __init__(self):
+        super().__init__()
+        self._start_url = "http://wsjkw.gd.gov.cn/xxgzbdfk/index.html"
+
+    # 重载方法
+    def deal_item(self, item):
+        if item.get_info("effective") and item.deal():
+            self.update_filter_queue(item.get_info("sourceUrl"))
 
     #  获取文章列表页数
     def get_pages_num(self, start_url):
@@ -88,12 +95,11 @@ class  GDWJWSpider(Spider):
 
     # 爬虫主进程
     def spider(self):
-        start_url = "http://wsjkw.gd.gov.cn/xxgzbdfk/index.html"
-        page_num = self.get_pages_num(start_url)
+        page_num = self.get_pages_num(self._start_url)
 
         # 获取全部文章列表的链接
         urls = []
-        urls.append(start_url)
+        urls.append(self._start_url)
         if page_num != 1:
             for n in range(2, page_num+1):
                 urls.append("http://wsjkw.gd.gov.cn/xxgzbdfk/index_{}.html".format(n))
