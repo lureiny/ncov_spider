@@ -35,6 +35,12 @@ class Spider():
 
 # 广东卫健卫爬虫，示例
 class  GDWJWSpider(Spider):
+    # 重载方法
+    def deal_item(self, item):
+        if item.get_info("effective"):
+            self.update_filter_queue(item.get_info("sourceUrl"))    
+            item.deal()
+
     #  获取文章列表页数
     def get_pages_num(self, start_url):
         xml = Download(start_url).request()
@@ -67,6 +73,10 @@ class  GDWJWSpider(Spider):
             source_date = xml.xpath('//p[@class="margin_top15 c999999 text_cencer"]')[0].text
         except IndexError:
             print_info("{}解析失败".format(item.get_info("sourceUrl"))
+            item.set_info({"effective": True})
+            return 
+        except Exception:
+            print_info("{}下载失败".format(item.get_info("sourceUrl"))
             return 
         source_date = source_date.split(" ")
         body = []
