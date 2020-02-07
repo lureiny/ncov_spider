@@ -53,7 +53,7 @@ class  GDWJWSpider(Spider):
     def get_page_num(self):
         xml = Download(self._start_url).request()
         if xml == False:
-            return -1
+            return False
         last_url = xml.xpath('//a[@class="last"]')[0].xpath("@href")[0]
         html_names = re.findall(pattern=r"index_[\d]*.html", string=last_url)
         if len(html_names) >= 1:
@@ -101,7 +101,9 @@ class  GDWJWSpider(Spider):
         # 获取全部文章列表的链接
         urls = []
         urls.append(self._start_url)
-        if page_num != 1:
+        if self._page_num is False:
+            return 
+        elif self._page_num != 1:
             for n in range(2, self._page_num+1):
                 urls.append("http://wsjkw.gd.gov.cn/xxgzbdfk/index_{}.html".format(n))
         # 抓取内容
