@@ -25,8 +25,8 @@ class Spider():
 
     # 处理item，主要是进行存储等
     def deal_item(self, item):
-        self.update_filter_queue(item.get_info("sourceUrl"))    
-        item.deal()
+        if item.deal():
+            self.update_filter_queue(item.get_info("sourceUrl"))
 
     # 必须重载，执行爬虫操作
     def spider(self):

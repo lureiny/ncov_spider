@@ -25,7 +25,7 @@ class Item():
     # 存储对象信息处理
     def deal(self):
         mongo = MongoDB(MONGODB_URI, "notices")
-        mongo.insert(self._info)
+        return mongo.insert(self._info)
 
     def __str__(self):
         return str(self._info)
