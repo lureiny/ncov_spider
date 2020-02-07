@@ -76,7 +76,7 @@ class  GDWJWSpider(Spider):
             item.set_info({"effective": True})
             return 
         except Exception:
-            print_info("{}下载失败".format(item.get_info("sourceUrl"))
+            print_info("{}下载失败".format(item.get_info("sourceUrl")))
             return 
         source_date = source_date.split(" ")
         body = []
