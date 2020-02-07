@@ -42,6 +42,7 @@ class  GDWJWSpider(Spider):
     def __init__(self):
         super().__init__()
         self._start_url = "http://wsjkw.gd.gov.cn/xxgzbdfk/index.html"
+        self._page_num = self.get_page_num()
 
     # 重载方法
     def deal_item(self, item):
@@ -49,8 +50,8 @@ class  GDWJWSpider(Spider):
             self.update_filter_queue(item.get_info("sourceUrl"))
 
     #  获取文章列表页数
-    def get_pages_num(self, start_url):
-        xml = Download(start_url).request()
+    def get_page_num(self):
+        xml = Download(self._start_url).request()
         if xml == False:
             return -1
         last_url = xml.xpath('//a[@class="last"]')[0].xpath("@href")[0]
@@ -96,13 +97,12 @@ class  GDWJWSpider(Spider):
 
     # 爬虫主进程
     def spider(self):
-        page_num = self.get_pages_num(self._start_url)
 
         # 获取全部文章列表的链接
         urls = []
         urls.append(self._start_url)
         if page_num != 1:
-            for n in range(2, page_num+1):
+            for n in range(2, self._page_num+1):
                 urls.append("http://wsjkw.gd.gov.cn/xxgzbdfk/index_{}.html".format(n))
         # 抓取内容
         items = []
