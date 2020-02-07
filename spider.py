@@ -70,7 +70,7 @@ class  GDWJWSpider(Spider):
             span = li.find("span")
             if self.url_repeat(a.get("href")) is False:
                 item = GDWJWItem()
-                item.set_info({"title": a.get("title"), "sourceUrl": a.get("href"), "_id": generate_hash(a.get("title")), "agency": "广东省卫健委", "date": span.text})
+                item.set_info({"title": a.get("title"), "sourceUrl": a.get("href"), "_id": generate_hash("{}{}".format(a.get("title"), span.text)), "agency": "广东省卫健委", "date": span.text})
                 items.append(item)
 
     # 获取单个文章信息
@@ -90,7 +90,8 @@ class  GDWJWSpider(Spider):
         for p in xml.xpath('//div[@class="content-content"]/p'):
             if p.text:
                 body.append(p.text.split("。"))
-        update_info = {"date": "{} {}".format(source_date[0].replace("时间：", ""), source_date[1]), "source": source_date[3].replace("来源：", ""), "body": body}
+        date = "{} {}".format(source_date[0].replace("时间：", ""), source_date[1])
+        update_info = {"date": date, "_id": generate_hash("{}{}".format(item.get_info("title"), date)) ,"source": source_date[3].replace("来源：", ""), "body": body, "effective": True}
         item.set_info(update_info)
 
     # 爬虫主进程

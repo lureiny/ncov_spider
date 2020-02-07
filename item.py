@@ -49,4 +49,4 @@ class GDWJWItem(Item):
     def deal(self):
         mongo = MongoDB(MONGODB_URI, "notices")
         del self._info["effective"]
-        mongo.insert(self._info)
+        return mongo.insert(self._info)

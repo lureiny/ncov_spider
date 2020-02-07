@@ -16,10 +16,11 @@ class MongoDB():
 
     def insert(self, document):
         try:
-            return self.__collection.insert_one(document)
+            self.__collection.insert_one(document)
+            return True
         except pymongo.errors.DuplicateKeyError:
             # print_info("ID重复")
-            # print_info(document)
+            print_info(document)
             return False
         except Exception:
             print(document)
