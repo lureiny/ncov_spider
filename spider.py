@@ -5,6 +5,10 @@ import hashlib
 from units import print_info
 import redis
 from setting import REDIS_HOST, REDIS_PORT, FILTER_QUEUE, MONGODB_URI
+
+# runmors
+import requests
+from setting import HEADERS
 from mongodb import MongoDB
 
 
@@ -114,3 +118,40 @@ class  GDWJWSpider(Spider):
         for item in items:
             self.get_post(item)
             self.deal_item(item)
+
+
+class RumorSpider(Spider):
+    def __init__(self):
+        super().__init__()
+
+    # 获取谣言信息，来自丁香园
+    def get_rumors(self, type):
+        url = "https://lab.isaaclin.cn/nCoV/api/rumors?num=all&rumorType={}".format(type)
+        resp = requests.get(url=url, headers=HEADERS)
+        if resp.status_code != 200:
+            print_info("Something Wrong, Status Code is: {}".format(resp.status_code))
+            return False
+        return resp.json()
+
+    # 获取的数据存储到MongoDB
+    def deal_item(self, data):
+        rumors = data["results"]
+        mongo = MongoDB(MONGODB_URI, "rumors")
+
+        for rumor in rumors:
+            rumor_id = generate_hash("{}{}".format(rumor["title"], rumor["rumorType"]))
+            rumor.update({"_id": rumor_id})
+            if self.url_repeat(rumor_id) is False and mongo.insert(rumor):
+                self.update_filter_queue(rumor_id)
+
+    def spider(self):
+        for type in range(3):
+            try:
+                data = self.get_rumors(type=type)
+                if data:
+                    self.deal_item(data=data)
+                else:
+                    continue
+            except Exception as error:
+                print_info(error)
+                continue
