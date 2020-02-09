@@ -1,0 +1,39 @@
+version: "3"
+
+services:
+  rumors_crawler:
+    image: ncov:v1
+    volumes:
+      - "../../ncov_spider:/usr/src/ncov_spider"
+      - "/etc/localtime:/etc/localtime:ro"
+    container_name: ncov_spider_crawler
+    depends_on:
+      - mongodb
+      - redis
+    restart: always
+    command: ["/usr/src/ncov_spider/docker/spider/start.sh"]
+    networks: 
+      ncov:
+
+  mongodb:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    container_name: ncov_spider_mongo
+    networks: 
+      ncov:
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis
+    restart: always
+    container_name: ncov_spider_redis
+    networks: 
+      ncov:
+
+
+networks: 
+  ncov:
