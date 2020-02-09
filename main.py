@@ -1,6 +1,9 @@
-from setting import SPIDERS, SLEEP_TIME
+from setting import SPIDERS, SLEEP_TIME, LOG
 import time
 from units import print_info
+import sys
+
+sys.stdout = open(LOG, "a")
 
 if __name__ == '__main__':
     Spiders = __import__("spider")
