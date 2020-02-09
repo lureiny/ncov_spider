@@ -50,3 +50,7 @@ class GDWJWItem(Item):
         mongo = MongoDB(MONGODB_URI, "notices")
         del self._info["effective"]
         return mongo.insert(self._info)
+
+class SZWJWItem(GDWJWItem):
+    def __init__(self):
+        super().__init__()
