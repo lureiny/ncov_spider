@@ -12,7 +12,7 @@ class Download():
     def request(self):
         try:
             resp = requests.get(url = self.url, headers=HEADERS)
-            root = etree.HTML(resp.text)
+            root = etree.HTML(resp.content.decode("utf-8"))
         except Exception as error:
             print_info("{}爬取失败，错误信息：{}".format(url, error.__str__()))
             root = False
