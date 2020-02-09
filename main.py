@@ -10,7 +10,7 @@ if __name__ == '__main__':
             print_info("未指定爬虫，程序退出")
             break
         for spider in SPIDERS:
-            print_info("{}第{}次开始运行".format(spider, num))
+            print_info("{}开始第{}次运行".format(spider, num))
             spider_class = getattr(Spiders, spider)
             spider_object = spider_class()
             spider_object.spider()

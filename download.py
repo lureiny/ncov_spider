@@ -14,6 +14,6 @@ class Download():
             resp = requests.get(url = self.url, headers=HEADERS)
             root = etree.HTML(resp.content.decode("utf-8"))
         except Exception as error:
-            print_info("{}爬取失败，错误信息：{}".format(url, error.__str__()))
+            print_info("{} 下载失败，错误信息：{}".format(self.url, error.__str__()))
             root = False
         return root
