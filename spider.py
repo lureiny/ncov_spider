@@ -1,6 +1,6 @@
 from download import Download
 import re
-from item import GDWJWItem
+from item import GDWJWItem, SZWJWItem
 import hashlib
 from units import print_info
 import redis
@@ -75,29 +75,26 @@ class  GDWJWSpider(Spider):
             span = li.find("span")
             if self.url_repeat(a.get("href")) is False:
                 item = GDWJWItem()
-                item.set_info({"title": a.get("title"), "sourceUrl": a.get("href"), "_id": generate_hash("{}{}".format(a.get("title"), span.text)), "agency": "广东省卫健委", "date": span.text})
+                item.set_info({"title": a.get("title"), "sourceUrl": a.get("href"), "_id": generate_hash("{}{}".format(a.get("title"), span.text)), "agency": "广东省卫健委", "date": span.text, "effective": True})
                 items.append(item)
 
     # 获取单个文章信息
     def get_post(self, item):
         xml = Download(item.get_info("sourceUrl")).request()
-        try:
-            source_date = xml.xpath('//p[@class="margin_top15 c999999 text_cencer"]')[0].text
-        except IndexError:
-            print_info("{}解析失败".format(item.get_info("sourceUrl")))
-            item.set_info({"effective": True})
-            return 
-        except Exception:
-            print_info("{}下载失败".format(item.get_info("sourceUrl")))
-            return 
-        source_date = source_date.split(" ")
-        body = []
-        for p in xml.xpath('//div[@class="content-content"]/p'):
-            if p.text:
-                body.append(p.text.split("。"))
-        date = "{} {}".format(source_date[0].replace("时间：", ""), source_date[1])
-        update_info = {"date": date, "_id": generate_hash("{}{}".format(item.get_info("title"), date)) ,"source": source_date[3].replace("来源：", ""), "body": body, "effective": True}
-        item.set_info(update_info)
+        if xml is not False:
+            try:
+                source_date = xml.xpath('//p[@class="margin_top15 c999999 text_cencer"]')[0].text
+            except Exception:
+                print_info("{} 解析失败".format(item.get_info("sourceUrl")))
+                return 
+            source_date = source_date.split(" ")
+            body = []
+            for p in xml.xpath('//div[@class="content-content"]/p'):
+                if p.text:
+                    body.append(p.text.split("。"))
+            date = "{} {}".format(source_date[0].replace("时间：", ""), source_date[1])
+            update_info = {"date": date, "_id": generate_hash("{}{}".format(item.get_info("title"), date)) ,"source": source_date[3].replace("来源：", ""), "body": body, "effective": True}
+            item.set_info(update_info)
 
     # 爬虫主进程
     def spider(self):
@@ -155,3 +152,66 @@ class RumorSpider(Spider):
             except Exception as error:
                 print_info(error)
                 continue
+
+class SZWJWSpider(GDWJWSpider):
+    def __init__(self):
+        self._start_url = "http://wjw.sz.gov.cn/yqxx/index.htm"
+        self._page_num = self.get_page_num()
+
+    # 获取页数
+    def get_page_num(self):
+        xml = Download(self._start_url).request()
+        js_func = xml.xpath('//div[@class="zx_ml_list_page"]/script/text()')[0]
+        js_func = js_func.replace("createPageHTML(", "").replace(");", "")
+        return int(js_func.split(",")[0])
+
+    # 获取文章列表
+    def get_post_list(self, url, items):
+        xml = Download(url).request()
+        lis = xml.xpath('//div[@class="wendangListC"][1]//li')
+        for li in lis:
+            date = li.find("strong").text
+            a = li.find("a")
+            post_url = re.sub("^\.", "http://wjw.sz.gov.cn/yqxx", a.get("href"))
+            if self.url_repeat(post_url) is False:
+                item = SZWJWItem()
+                item.set_info({"title": a.text, "sourceUrl": post_url, "_id": generate_hash("{}{}".format(a.text, date)), "agency": "深圳卫健委", "date": date, "effective": True, "source": "深圳市卫生健康委员会"})
+                items.append(item)
+
+    # 获取单个文章
+    def get_post(self, item):
+        if item.get_info("sourceUrl").split(".")[-1] == "pdf":
+            return
+        xml = Download(item.get_info("sourceUrl")).request()
+        if xml is not False:
+            try:
+                source_date = xml.xpath('//div[@class="xxxq_text_tit"][1]/h6/span[2]')[0]
+                source_date = ["深圳市卫生健康委员会", source_date.text.replace("发布日期：", "")]
+            except Exception as e:
+                print_info("{} 解析失败".format(item.get_info("sourceUrl")))
+                return 
+            body = []
+            for p in xml.xpath('//div[@class="TRS_Editor"]/p'):
+                if p.text:
+                    body.append(p.text.split("。"))
+                else:
+                    continue
+            date = source_date[1]
+            update_info = {"date": date, "_id": generate_hash("{}{}".format(item.get_info("title"), date)) ,"source": source_date[0], "body": body, "effective": True}
+            item.set_info(update_info)
+
+    def spider(self):
+        # 获取全部文章列表的链接
+        urls = []
+        urls.append(self._start_url)
+        if self._page_num != 1:
+            for n in range(1, self._page_num):
+                urls.append("http://wjw.sz.gov.cn/yqxx/index_{}.htm".format(n))
+        # 抓取内容
+        items = []
+        for url in urls:
+            self.get_post_list(url=url, items=items)
+        
+        for item in items:
+            self.get_post(item=item)
+            self.deal_item(item)
