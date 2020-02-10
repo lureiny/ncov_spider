@@ -54,3 +54,7 @@ class GDWJWItem(Item):
 class SZWJWItem(GDWJWItem):
     def __init__(self):
         super().__init__()
+
+class NewsDXYItem(Item):
+    def __init__(self):
+        super().__init__()

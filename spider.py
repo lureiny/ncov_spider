@@ -1,6 +1,6 @@
 from download import Download
 import re
-from item import GDWJWItem, SZWJWItem
+from item import GDWJWItem, SZWJWItem, NewsDXYItem
 import hashlib
 from units import print_info
 import redis
@@ -10,6 +10,7 @@ from setting import REDIS_HOST, REDIS_PORT, FILTER_QUEUE, MONGODB_URI
 import requests
 from setting import HEADERS
 from mongodb import MongoDB
+import time
 
 
 def generate_hash(info):
@@ -224,3 +225,106 @@ class SZWJWSpider(GDWJWSpider):
         for item in items:
             self.get_post(item=item)
             self.deal_item(item)
+
+
+class NewsDXYSpider(Spider):
+    def __init__(self):
+        super().__init__()
+        self._url = "https://lab.isaaclin.cn/nCoV/api/news?num=all"
+        self._hosts = { 
+                            'http://dxys.com': "丁香园",
+                            'http://hc.jiangxi.gov.cn': "江西省卫生健康委员会",
+                            'http://hnwsjsw.gov.cn': "河南省卫生健康委员会",
+                            'http://m.news.cctv.com': "CCTV",
+                            'http://m.weibo.cn': "微博",
+                            'http://sxwjw.shaanxi.gov.cn': "陕西省卫生健康委员会",
+                            'http://wjw.ah.gov.cn': "安徽省卫生健康委员会",
+                            'http://wjw.beijing.gov.cn': "北京市卫生健康委员会",
+                            'http://wjw.fujian.gov.cn': "福建省卫生健康委员会",
+                            'http://wjw.nmg.gov.cn': "内蒙古自治区卫生健康委员会",
+                            'http://wjw.shanxi.gov.cn': "山西省卫生健康委员会",
+                            'http://wjw.sz.gov.cn': "深圳市卫生健康委员会",
+                            'http://wjw.wuhan.gov.cn': "湖北武汉市卫生健康委员会",
+                            'http://wjw.wuzhou.gov.cn': "广西梧州市卫生健康委员会",
+                            'http://wsjk.ln.gov.cn': "辽宁省卫生健康委员会",
+                            'http://wsjk.tj.gov.cn': "天津市卫生健康委员会",
+                            'http://wsjkj.guiyang.gov.cn': "贵阳市卫生健康局",
+                            'http://wsjkw.cq.gov.cn': "重庆市卫生健康委员会",
+                            'http://wsjkw.gd.gov.cn': "广东省卫生健康委员会",
+                            'http://wsjkw.nx.gov.cn': "宁夏回族自治区卫生健康委员会",
+                            'http://wsjkw.sc.gov.cn': "四川省卫生健康委员会",
+                            'http://wsjkw.shandong.gov.cn': "山东省卫生健康委员会",
+                            'http://www.dxal.gov.cn': "大兴安岭行政公署",
+                            'http://www.gzhfpc.gov.cn': "贵州省卫生健康委员会",
+                            'http://www.jms.gov.cn': "佳木斯市人民政府",
+                            'http://www.nhc.gov.cn': "中国卫生健康委员会",
+                            'http://www.sc.gov.cn': "四川省人民政府",
+                            'http://www.xf.gov.cn': "襄阳市人民政府",
+                            'http://www.xjhfpc.gov.cn': "新疆维吾尔自治区卫生健康委员会",
+                            'http://www.zjwjw.gov.cn': "浙江省卫生健康委员会",
+                            'http://ynswsjkw.yn.gov.cn': "云南省卫生健康委员会",
+                            'https://dxy.me': "丁香园",
+                            'https://m.weibo.cn': "微博",
+                            'https://mp.weixin.qq.com': "微信",
+                            'https://news.sina.cn': "新浪",
+                            'https://wap.peopleapp.com': "人民日报",
+                            'https://weibo.com': "微博",
+                            'https://wsjkw.qinghai.gov.cn': "青海省卫生健康委员会",
+                            'https://www.cdc.gov.tw': "卫生福利部疾病管制署(台湾)",
+                            'https://www.gov.mo': "澳门特别行政区政府",
+                            'https://www.weibo.com': "微博",
+                            'http://wsjkw.sh.gov.cn': "上海市卫生健康委员会"
+                    }
+
+    # 获取全部通告内容
+    def get_notices(self):
+        try:
+            data_json = requests.get(self._url).json()
+        except Exception:
+            print_info("丁香园新闻信息爬取失败")
+            return False
+        if data_json["success"]:
+            return data_json["results"]
+        else:
+            return False
+        
+    # 解析数据，判重
+    def get_items(self, items):
+        datas = self.get_notices()
+        if datas is False:
+            return False
+        r = re.compile(r"^http[s]*://[\w\.]+")
+        for data in datas:
+            sourceUrl = data["sourceUrl"]
+            if self.url_repeat(sourceUrl) is False:
+                bodys = []
+                for passage in data["summary"].split("\n"):
+                    bodys.append(passage.split("。"))
+                title = data["title"]
+                date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(data["pubDate"]) / 1000))
+                source = data["infoSource"]
+                provinceName = data["provinceName"]
+                provinceId = data["provinceId"]
+                _id = generate_hash("{}{}".format(title, date))
+                try:
+                    host = re.findall(r, sourceUrl)[0]
+                    agency = self._hosts[host]
+                except KeyError:
+                    print_info("新Host：{}".format(host))
+                    agency = "未知"
+                except IndexError:
+                    print_info("错误Host：{}".format(sourceUrl))
+                    agency = "微博"
+                update_info = {"_id": _id, "title":  title, "sourceUrl": sourceUrl, "agency": agency, "date": date, "source": source, "body": bodys, "provinceName": provinceName, "provinceId": provinceId}
+                # 创建Item
+                item = NewsDXYItem()
+                item.set_info(update_info)
+                items.append(item)
+
+    def spider(self):
+        items = []
+        self.get_items(items=items)
+
+        # 存储item
+        for item in items:
+            self.deal_item(item=item)

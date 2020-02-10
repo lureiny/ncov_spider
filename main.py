@@ -1,11 +1,13 @@
 from setting import SPIDERS, SLEEP_TIME, LOG
 import time
-from units import print_info
+from units import print_info, update_redis
 import sys
 
 sys.stdout = open(LOG, "a")
 
 if __name__ == '__main__':
+    # 初始化去重队列
+    update_redis()
     Spiders = __import__("spider")
     num = 1
     while True:
