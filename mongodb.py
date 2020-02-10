@@ -20,9 +20,9 @@ class MongoDB():
             return True
         except pymongo.errors.DuplicateKeyError:
             # print_info("ID重复")
-            print_info(document)
+            print_info("ID重复：{}".format(str(document)))
             return False
         except Exception:
-            print(document)
+            print_info("其他错误：{}".format(str(document)))
             return False
 
