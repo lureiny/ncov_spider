@@ -1,6 +1,6 @@
-from download import Download
+from download import Download, TencentRumorDownload
 import re
-from item import GDWJWItem, SZWJWItem, NewsDXYItem
+from item import GDWJWItem, SZWJWItem, NewsDXYItem, TencentRumorItem
 import hashlib
 from units import print_info
 import redis
@@ -11,6 +11,7 @@ import requests
 from setting import HEADERS
 from mongodb import MongoDB
 import time
+import json
 
 
 def generate_hash(info):
@@ -327,4 +328,91 @@ class NewsDXYSpider(Spider):
 
         # 存储item
         for item in items:
+            self.deal_item(item=item)
+
+
+class TencentRumorSpider(Spider):
+    def __init__(self):
+        self._base_url = "https://vp.fact.qq.com/loadmore?artnum=0&page={}&_={}&callback=jsonp{}"
+
+    # 获取items对象
+    def get_item(self, items):
+        num = 0
+        while True:
+            resp = TencentRumorDownload(self._base_url.format(num, int(time.time() * 1000), num)).request()
+            resp  = self.get_json(resp=resp)
+            rumors = resp["content"]
+            if rumors:
+                for rumor in rumors:
+                    sourceUrl = "https://vp.fact.qq.com/article?id={}&ADTAG=xw-1.jz".format(rumor["id"])
+                    if self.url_repeat(sourceUrl) is False:
+                        title = rumor["title"]
+                        mainSummary = rumor["abstract"]
+                        date = rumor["date"]
+                        author = rumor["author"]
+                        authordesc = rumor["authordesc"]
+                        _id = generate_hash("{}{}".format(title, date))
+                        if rumor["result"] == "真":
+                            rumorType = 1
+                        elif rumor["result"] == "假":
+                            rumorType = 0
+                        else:
+                            if rumor["explain"] == "存在争议":
+                                rumorType = 3
+                            elif rumor["explain"] == "有失实":
+                                rumorType = 4
+                            elif rumor["explain"] == "分情况":
+                                rumorType = 5
+                            else:
+                                rumorType = 2
+                        update = {"_id": _id, "title": title, "mainSummary": mainSummary, "rumorType": rumorType, "sourceUrl": sourceUrl, "date": date, "source": author, "agency": authordesc}
+                        item = TencentRumorItem()
+                        item.set_info(update)
+                        items.append(item)
+                num += 1
+            else:
+                break
+    
+    # 获取文章正文
+    def get_post(self, item):
+        xml = Download(item.get_info("sourceUrl")).request()
+        if xml is False:
+            return 
+        bodys = []
+        try:
+            lis = xml.xpath('//div[@class="check_content_points"]/ul/li')
+            if len(lis) > 1:
+                for li in lis:
+                    if li.find("span").tail:
+                        bodys.append(li.find("span").tail.split("。"))
+            else:
+                bodys.append(lis[0].text.split("。"))
+        except Exception:
+            print_info("解析错误：{}".format(item.get_info("sourceUrl")))
+            return 
+
+        item.set_info({"body": bodys})
+        
+    # 获取json数据
+    def get_json(self, resp):
+        last = re.compile(r"\)$")
+        front = re.compile(r"^jsonp[0-9]+\(")
+        resp_new = self.re_sub(pattern=front, string=self.re_sub(pattern=last, string=resp, repl=""), repl="")
+        try:
+            return json.loads(resp_new)
+        except Exception:
+            print_info("json解析错误：{}".format(str(resp)))
+            return False
+
+    # 使用正则表达式对数据进行处理
+    def re_sub(self, pattern, string, repl):
+        return re.sub(pattern=pattern, repl=repl, string=string)
+
+    # 爬虫主程序
+    def spider(self):
+        items = []
+        self.get_item(items=items)
+
+        for item in items:
+            self.get_post(item)
             self.deal_item(item=item)

@@ -9,7 +9,7 @@ MONGODB_URI = "mongodb://user:passwd@ncov_spider_mongo:27017/?authSource=ncov"
 FILTER_QUEUE = "FILTER"
 
 # 爬虫列表，对象为Spider类的子类
-SPIDERS = ["RumorSpider", "SZWJWSpider", "GDWJWSpider", "NewsDXYSpider"]
+SPIDERS = ["RumorSpider", "SZWJWSpider", "GDWJWSpider", "NewsDXYSpider", "TencentRumorSpider"]
 
 # 爬虫间隔时间，单位：秒
 SLEEP_TIME = 600

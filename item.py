@@ -58,3 +58,22 @@ class SZWJWItem(GDWJWItem):
 class NewsDXYItem(Item):
     def __init__(self):
         super().__init__()
+
+class TencentRumorItem(Item):
+    def __init__(self):
+        super().__init__()
+        self._info = {
+            "_id": "",
+            "title": "",
+            "mainSummary": "",
+            "rumorType": "",
+            "sourceUrl": "",
+            "agency": "",
+            "date": "",
+            "source": "",
+            "body": [],
+        }
+
+    def deal(self):
+        mongo = MongoDB(MONGODB_URI, "rumors")
+        return mongo.insert(self._info)

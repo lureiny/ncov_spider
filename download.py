@@ -17,3 +17,17 @@ class Download():
             print_info("{} 下载失败，错误信息：{}".format(self.url, error.__str__()))
             root = False
         return root
+
+
+# 腾讯爬虫下载类
+class TencentRumorDownload(Download):
+    def __init__(self, url):
+        super().__init__(url)
+    
+    def request(self):
+        try:
+            resp = requests.get(url=self.url, headers=HEADERS).text
+        except Exception as error:
+            print_info("{} 下载失败，错误信息：{}".format(self.url, error.__str__()))
+            resp = False
+        return resp
