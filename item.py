@@ -41,7 +41,7 @@ class GDWJWItem(Item):
             "agency": "",
             "date": "",
             "source": "",
-            "body": [],
+            "body": "",
             "effective": False
         }
     
@@ -71,7 +71,7 @@ class TencentRumorItem(Item):
             "agency": "",
             "date": "",
             "source": "",
-            "body": [],
+            "body": "",
         }
 
     def deal(self):

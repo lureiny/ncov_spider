@@ -96,9 +96,9 @@ class  GDWJWSpider(Spider):
         body = []
         for p in xml.xpath('//div[@class="content-content"]/p'):
             if p.text:
-                body.append(p.text.split("。"))
+                body.append(p.text)
         date = "{} {}".format(source_date[0].replace("时间：", ""), source_date[1])
-        update_info = {"date": date, "_id": generate_hash("{}{}".format(item.get_info("title"), date)) ,"source": source_date[3].replace("来源：", ""), "body": body, "effective": True}
+        update_info = {"date": date, "_id": generate_hash("{}{}".format(item.get_info("title"), date)) ,"source": source_date[3].replace("来源：", ""), "body": "\n".join(body), "effective": True}
         item.set_info(update_info)
 
     # 爬虫主进程
@@ -142,7 +142,7 @@ class RumorSpider(Spider):
 
         for rumor in rumors:
             rumor_id = generate_hash("{}{}".format(rumor["title"], rumor["rumorType"]))
-            rumor.update({"_id": rumor_id})
+            rumor.update({"_id": rumor_id, "source": "丁香园", "agency": "丁香园"})
             if self.url_repeat(rumor_id) is False and mongo.insert(rumor):
                 self.update_filter_queue(rumor_id)
 
@@ -204,11 +204,11 @@ class SZWJWSpider(GDWJWSpider):
         body = []
         for p in xml.xpath('//div[@class="TRS_Editor"]/p'):
             if p.text:
-                body.append(p.text.split("。"))
+                body.append(p.text)
             else:
                 continue
         date = source_date[1]
-        update_info = {"date": date, "_id": generate_hash("{}{}".format(item.get_info("title"), date)) ,"source": source_date[0], "body": body, "effective": True}
+        update_info = {"date": date, "_id": generate_hash("{}{}".format(item.get_info("title"), date)) ,"source": source_date[0], "body": "\n".join(body), "effective": True}
         item.set_info(update_info)
 
     def spider(self):
@@ -274,7 +274,17 @@ class NewsDXYSpider(Spider):
                             'https://www.cdc.gov.tw': "卫生福利部疾病管制署(台湾)",
                             'https://www.gov.mo': "澳门特别行政区政府",
                             'https://www.weibo.com': "微博",
-                            'http://wsjkw.sh.gov.cn': "上海市卫生健康委员会"
+                            'http://wsjkw.sh.gov.cn': "上海市卫生健康委员会",
+                            'http://wjw.hunan.gov.cn': "湖南省卫生健康委员会",
+                            'https://www.zjwjw.gov.cn': "浙江省卫生健康委员会",
+                            'http://www.jl.gov.cn': "吉林省政府网",
+                            'http://wsjkw.gxzf.gov.cn': "广西壮族自治区卫生健康委员会",
+                            'http://wsjkw.hlj.gov.cn': "黑龙江省卫生健康委员会",
+                            'http://www.hebwst.gov.cn': "河北省卫生健康委员会",
+                            'http://wst.hainan.gov.cn': "海南省卫生健康委员会",
+                            'http://wjw.jiangsu.gov.cn': "江苏省卫生健康委员会",
+                            'http://wsjk.gansu.gov.cn': "甘肃省卫生健康委员会",
+                            'http://wjw.xizang.gov.cn': "西藏自治区卫生健康委员会"
                     }
 
     # 获取全部通告内容
@@ -298,9 +308,7 @@ class NewsDXYSpider(Spider):
         for data in datas:
             sourceUrl = data["sourceUrl"]
             if self.url_repeat(sourceUrl) is False:
-                bodys = []
-                for passage in data["summary"].split("\n"):
-                    bodys.append(passage.split("。"))
+                bodys = data["summary"]
                 title = data["title"]
                 date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(data["pubDate"]) / 1000))
                 source = data["infoSource"]
@@ -384,14 +392,14 @@ class TencentRumorSpider(Spider):
             if len(lis) > 1:
                 for li in lis:
                     if li.find("span").tail:
-                        bodys.append(li.find("span").tail.split("。"))
+                        bodys.append(li.find("span").tail)
             else:
-                bodys.append(lis[0].text.split("。"))
+                bodys.append(lis[0].text)
         except Exception:
             print_info("解析错误：{}".format(item.get_info("sourceUrl")))
             return 
 
-        item.set_info({"body": bodys})
+        item.set_info({"body": "\n".join(bodys)})
         
     # 获取json数据
     def get_json(self, resp):
