@@ -290,7 +290,7 @@ class NewsDXYSpider(Spider):
     # 获取全部通告内容
     def get_notices(self):
         try:
-            data_json = requests.get(self._url).json()
+            data_json = requests.get(self._url, headers=HEADERS).json()
         except Exception:
             print_info("丁香园新闻信息爬取失败")
             return False
